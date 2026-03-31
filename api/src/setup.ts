@@ -1,6 +1,7 @@
 import { createInterface } from "node:readline/promises";
 import { stdin, stdout } from "node:process";
-import { resolve } from "node:path";
+import { resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import { randomBytes } from "node:crypto";
 import { LocalStorage } from "./services/storage-local.js";
 import { hashPassword, type AppConfig } from "./services/auth.js";
@@ -16,7 +17,8 @@ async function prompt(question: string): Promise<string> {
 async function main() {
   console.log("\n  Dropcast Setup\n");
 
-  const dataDir = resolve(process.cwd(), "data");
+  const __dirname = dirname(fileURLToPath(import.meta.url));
+  const dataDir = resolve(__dirname, "..", "..", "data");
   const storage = new LocalStorage(dataDir);
   setStorage(storage);
 

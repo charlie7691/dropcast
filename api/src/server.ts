@@ -1,10 +1,12 @@
 import { serve } from "@hono/node-server";
-import { resolve } from "node:path";
+import { resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import app from "./handler.js";
 import { setStorage } from "./services/storage.js";
 import { LocalStorage } from "./services/storage-local.js";
 
-const dataDir = resolve(process.cwd(), "..", "data");
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const dataDir = resolve(__dirname, "..", "..", "data");
 setStorage(new LocalStorage(dataDir));
 
 const port = 3001;

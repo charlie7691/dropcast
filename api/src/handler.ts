@@ -1,7 +1,6 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
-import { jwtAuth } from "./middleware/jwt.js";
 import authRoutes from "./routes/auth.js";
 import dropboxRoutes from "./routes/dropbox.js";
 import feedRoutes from "./routes/feeds.js";
@@ -9,6 +8,12 @@ import rssRoutes from "./routes/rss.js";
 import logRoutes from "./routes/logs.js";
 
 const app = new Hono();
+
+// Global error handler
+app.onError((err, c) => {
+  console.error(`[ERROR] ${c.req.method} ${c.req.path}:`, err.message);
+  return c.json({ error: err.message || "Internal server error" }, 500);
+});
 
 app.use("*", logger());
 app.use("/api/*", cors());
