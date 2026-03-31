@@ -1,0 +1,72 @@
+import { createInterface } from "node:readline/promises";
+import { stdin, stdout } from "node:process";
+import { resolve } from "node:path";
+import { randomBytes } from "node:crypto";
+import { LocalStorage } from "./services/storage-local.js";
+import { hashPassword, type AppConfig } from "./services/auth.js";
+import { setStorage } from "./services/storage.js";
+
+const rl = createInterface({ input: stdin, output: stdout });
+
+async function prompt(question: string): Promise<string> {
+  const answer = await rl.question(question);
+  return answer.trim();
+}
+
+async function main() {
+  console.log("\n  Dropcast Setup\n");
+
+  const dataDir = resolve(process.cwd(), "data");
+  const storage = new LocalStorage(dataDir);
+  setStorage(storage);
+
+  const existing = await storage.readJson<AppConfig>("config.json");
+  if (existing) {
+    const overwrite = await prompt("Config already exists. Overwrite? (y/N): ");
+    if (overwrite.toLowerCase() !== "y") {
+      console.log("Aborted.");
+      rl.close();
+      return;
+    }
+  }
+
+  const username = await prompt("Username: ");
+  const password = await prompt("Password: ");
+
+  if (!username || !password) {
+    console.error("Username and password are required.");
+    rl.close();
+    return;
+  }
+
+  const dropboxAppKey = await prompt(
+    "Dropbox App Key (leave empty to configure later): "
+  );
+  const dropboxAppSecret = dropboxAppKey
+    ? await prompt("Dropbox App Secret: ")
+    : "";
+
+  const config: AppConfig = {
+    username,
+    passwordHash: await hashPassword(password),
+    jwtSecret: randomBytes(32).toString("hex"),
+  };
+
+  if (dropboxAppKey && dropboxAppSecret) {
+    config.dropbox = {
+      appKey: dropboxAppKey,
+      appSecret: dropboxAppSecret,
+    };
+  }
+
+  await storage.writeJson("config.json", config);
+  console.log(`\nConfig saved to ${dataDir}/config.json`);
+  console.log("Run 'pnpm dev' to start the server.\n");
+
+  rl.close();
+}
+
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});
