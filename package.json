@@ -1,0 +1,12 @@
+{
+  "name": "dropcast",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --parallel -r run dev",
+    "build": "pnpm -r run build",
+    "setup": "tsx api/src/setup.ts"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
