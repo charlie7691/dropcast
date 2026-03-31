@@ -1,0 +1,115 @@
+import { createHash } from "node:crypto";
+import { getMimeType } from "./dropbox.js";
+
+export interface FeedConfig {
+  id: string;
+  title: string;
+  description: string;
+  author: string;
+  email: string;
+  language: string;
+  category: string;
+  explicit: boolean;
+  imageUrl: string;
+  dropboxFolder: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Episode {
+  id: string;
+  filename: string;
+  dropboxPath: string;
+  sharedLink: string;
+  size: number;
+  mimeType: string;
+  modifiedAt: string;
+}
+
+export interface FeedCache {
+  feedId: string;
+  lastRefreshed: string;
+  episodes: Episode[];
+}
+
+function escapeXml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+function toRfc2822(date: string): string {
+  return new Date(date).toUTCString();
+}
+
+function episodeTitle(filename: string): string {
+  // Strip extension and clean up
+  return filename.replace(/\.[^.]+$/, "").replace(/[_-]/g, " ");
+}
+
+function episodeGuid(dropboxPath: string): string {
+  return createHash("sha256").update(dropboxPath).digest("hex").slice(0, 16);
+}
+
+export function generateRssXml(
+  feed: FeedConfig,
+  episodes: Episode[],
+  feedUrl: string
+): string {
+  const sorted = [...episodes].sort(
+    (a, b) => new Date(b.modifiedAt).getTime() - new Date(a.modifiedAt).getTime()
+  );
+
+  const items = sorted
+    .map(
+      (ep) => `    <item>
+      <title>${escapeXml(episodeTitle(ep.filename))}</title>
+      <enclosure url="${escapeXml(ep.sharedLink)}" length="${ep.size}" type="${ep.mimeType}" />
+      <guid isPermaLink="false">${episodeGuid(ep.dropboxPath)}</guid>
+      <pubDate>${toRfc2822(ep.modifiedAt)}</pubDate>
+      <description>${escapeXml(episodeTitle(ep.filename))}</description>
+      <itunes:explicit>${feed.explicit ? "true" : "false"}</itunes:explicit>
+    </item>`
+    )
+    .join("\n");
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"
+  xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd"
+  xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>${escapeXml(feed.title)}</title>
+    <description>${escapeXml(feed.description)}</description>
+    <language>${escapeXml(feed.language)}</language>
+    <link>${escapeXml(feedUrl)}</link>
+    <atom:link href="${escapeXml(feedUrl)}" rel="self" type="application/rss+xml" />
+    <itunes:author>${escapeXml(feed.author)}</itunes:author>
+    <itunes:owner>
+      <itunes:name>${escapeXml(feed.author)}</itunes:name>
+      <itunes:email>${escapeXml(feed.email)}</itunes:email>
+    </itunes:owner>
+    <itunes:explicit>${feed.explicit ? "true" : "false"}</itunes:explicit>
+    <itunes:category text="${escapeXml(feed.category)}" />
+${feed.imageUrl ? `    <itunes:image href="${escapeXml(feed.imageUrl)}" />` : ""}
+${items}
+  </channel>
+</rss>`;
+}
+
+export function createEpisodeFromFile(
+  file: { name: string; path: string; size: number; modified: string },
+  sharedLink: string
+): Episode {
+  return {
+    id: episodeGuid(file.path),
+    filename: file.name,
+    dropboxPath: file.path,
+    sharedLink,
+    size: file.size,
+    mimeType: getMimeType(file.name),
+    modifiedAt: file.modified,
+  };
+}

@@ -4,6 +4,9 @@ import { logger } from "hono/logger";
 import { jwtAuth } from "./middleware/jwt.js";
 import authRoutes from "./routes/auth.js";
 import dropboxRoutes from "./routes/dropbox.js";
+import feedRoutes from "./routes/feeds.js";
+import rssRoutes from "./routes/rss.js";
+import logRoutes from "./routes/logs.js";
 
 const app = new Hono();
 
@@ -20,7 +23,11 @@ app.route("/api/auth", authRoutes);
 // Dropbox routes (callback is public, others protected inside)
 app.route("/api/dropbox", dropboxRoutes);
 
-// All other /api/* routes require JWT
-app.use("/api/*", jwtAuth);
+// Protected routes (JWT enforced inside each)
+app.route("/api/feeds", feedRoutes);
+app.route("/api/logs", logRoutes);
+
+// Public RSS feed endpoint
+app.route("/rss", rssRoutes);
 
 export default app;
