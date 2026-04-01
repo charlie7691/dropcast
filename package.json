@@ -3,10 +3,15 @@
   "private": true,
   "scripts": {
     "dev": "pnpm --parallel -r run dev",
-    "build": "pnpm -r run build",
-    "setup": "tsx api/src/setup.ts"
+    "build": "pnpm --filter @dropcast/web run build",
+    "setup": "tsx api/src/setup.ts",
+    "deploy": "pnpm run build && cd infra && npx cdk deploy --require-approval never",
+    "destroy": "cd infra && npx cdk destroy --force"
   },
   "engines": {
     "node": ">=18"
+  },
+  "devDependencies": {
+    "esbuild": "^0.27.4"
   }
 }

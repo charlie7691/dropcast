@@ -1,0 +1,21 @@
+{
+  "name": "@dropcast/infra",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "synth": "cdk synth",
+    "deploy": "cdk deploy --require-approval never",
+    "destroy": "cdk destroy --force"
+  },
+  "dependencies": {
+    "aws-cdk-lib": "^2.170.0",
+    "constructs": "^10.4.0"
+  },
+  "devDependencies": {
+    "aws-cdk": "^2.170.0",
+    "esbuild": "^0.27.4",
+    "tsx": "^4.21.0",
+    "typescript": "^5.7.0"
+  }
+}
