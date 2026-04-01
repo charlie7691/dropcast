@@ -102,21 +102,6 @@ export default function Feeds() {
               className="px-3 py-2 bg-gray-800 border border-gray-700 rounded focus:outline-none focus:border-blue-500"
               required
             />
-            <input
-              placeholder="Author"
-              value={form.author}
-              onChange={(e) => setForm({ ...form, author: e.target.value })}
-              className="px-3 py-2 bg-gray-800 border border-gray-700 rounded focus:outline-none focus:border-blue-500"
-              required
-            />
-            <input
-              placeholder="Email"
-              type="email"
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
-              className="px-3 py-2 bg-gray-800 border border-gray-700 rounded focus:outline-none focus:border-blue-500"
-              required
-            />
             <select
               value={form.provider}
               onChange={(e) => setForm({ ...form, provider: e.target.value })}
@@ -125,48 +110,13 @@ export default function Feeds() {
               <option value="dropbox">Dropbox</option>
               <option value="onedrive">OneDrive</option>
             </select>
-            <FolderPicker
-              provider={form.provider}
-              value={form.folderPath}
-              onChange={(path) => setForm({ ...form, folderPath: path })}
-            />
-            <input
-              placeholder="Language (e.g. en)"
-              value={form.language}
-              onChange={(e) => setForm({ ...form, language: e.target.value })}
-              className="px-3 py-2 bg-gray-800 border border-gray-700 rounded focus:outline-none focus:border-blue-500"
-            />
-            <input
-              placeholder="Category (e.g. Technology)"
-              value={form.category}
-              onChange={(e) => setForm({ ...form, category: e.target.value })}
-              className="px-3 py-2 bg-gray-800 border border-gray-700 rounded focus:outline-none focus:border-blue-500"
-            />
-            <input
-              placeholder="Image URL (optional)"
-              value={form.imageUrl}
-              onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
-              className="px-3 py-2 bg-gray-800 border border-gray-700 rounded focus:outline-none focus:border-blue-500"
-            />
-          </div>
-          <textarea
-            placeholder="Description"
-            value={form.description}
-            onChange={(e) => setForm({ ...form, description: e.target.value })}
-            rows={3}
-            className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded focus:outline-none focus:border-blue-500"
-            required
-          />
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              id="explicit"
-              checked={form.explicit}
-              onChange={(e) => setForm({ ...form, explicit: e.target.checked })}
-            />
-            <label htmlFor="explicit" className="text-sm text-gray-300">
-              Explicit content
-            </label>
+            <div className="md:col-span-2">
+              <FolderPicker
+                provider={form.provider}
+                value={form.folderPath}
+                onChange={(path) => setForm({ ...form, folderPath: path })}
+              />
+            </div>
           </div>
           <button
             type="submit"
