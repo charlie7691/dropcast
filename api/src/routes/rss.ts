@@ -1,9 +1,10 @@
 import { Hono } from "hono";
 import { getStorage } from "../services/storage.js";
-import { listFolder, getOrCreateSharedLink } from "../services/dropbox.js";
+import { getProvider } from "../services/provider.js";
 import {
   generateRssXml,
   createEpisodeFromFile,
+  normalizeFeedConfig,
   type FeedConfig,
   type FeedCache,
   type Episode,
@@ -18,10 +19,11 @@ rss.get("/:id", async (c) => {
   const id = c.req.param("id");
   const storage = getStorage();
 
-  const feed = await storage.readJson<FeedConfig>(`feeds/${id}.json`);
-  if (!feed) {
+  const raw = await storage.readJson<Record<string, unknown>>(`feeds/${id}.json`);
+  if (!raw) {
     return c.text("Feed not found", 404);
   }
+  const feed = normalizeFeedConfig(raw);
 
   const cache = await storage.readJson<FeedCache>(`cache/${id}-meta.json`);
   const now = Date.now();
@@ -43,7 +45,6 @@ rss.get("/:id", async (c) => {
       c.header("Content-Type", "application/rss+xml; charset=utf-8");
       return c.body(xml);
     } catch (err) {
-      // If refresh fails and we have a stale cache, serve it
       const staleXml = await storage.readText(`cache/${id}.xml`);
       if (staleXml) {
         await log(
@@ -57,14 +58,12 @@ rss.get("/:id", async (c) => {
     }
   }
 
-  // Serve cached XML
   const cachedXml = await storage.readText(`cache/${id}.xml`);
   if (cachedXml) {
     c.header("Content-Type", "application/rss+xml; charset=utf-8");
     return c.body(cachedXml);
   }
 
-  // No cache exists, force refresh
   try {
     const updatedCache = await refreshFeed(feed, null);
     const feedUrl = new URL(`/rss/${id}`, c.req.url).toString();
@@ -85,13 +84,14 @@ async function refreshFeed(
   feed: FeedConfig,
   existingCache: FeedCache | null
 ): Promise<FeedCache> {
-  const files = await listFolder(feed.dropboxFolder);
+  const provider = await getProvider(feed.provider);
+  const files = await provider.listFiles(feed.folderPath);
 
   // Build a map of existing episodes by path for link reuse
   const existingByPath = new Map<string, Episode>();
   if (existingCache?.episodes) {
     for (const ep of existingCache.episodes) {
-      existingByPath.set(ep.dropboxPath, ep);
+      existingByPath.set(ep.providerPath, ep);
     }
   }
 
@@ -103,7 +103,7 @@ async function refreshFeed(
     if (existing) {
       episodes.push(existing);
     } else {
-      const link = await getOrCreateSharedLink(file.path);
+      const link = await provider.getDownloadLink(file.path);
       episodes.push(createEpisodeFromFile(file, link));
       newCount++;
     }
@@ -111,7 +111,7 @@ async function refreshFeed(
 
   await log(
     "rss_refreshed",
-    `Feed "${feed.title}": ${episodes.length} episodes (${newCount} new)`
+    `Feed "${feed.title}" (${feed.provider}): ${episodes.length} episodes (${newCount} new)`
   );
 
   return {

@@ -1,19 +1,49 @@
-import { getConfig, saveConfig, type AppConfig } from "./auth.js";
+import { getConfig, saveConfig } from "./auth.js";
+import {
+  type CloudProvider,
+  type CloudFile,
+  type TokenSet,
+  isMediaFile,
+  registerProvider,
+} from "./provider.js";
 
 const AUTH_BASE = "https://www.dropbox.com";
 const API_BASE = "https://api.dropboxapi.com/2";
 
-export interface DropboxFile {
-  name: string;
-  path: string;
-  size: number;
-  modified: string;
-  isDownloadable: boolean;
+class DropboxProvider implements CloudProvider {
+  id = "dropbox" as const;
+
+  async getAuthorizeUrl(redirectUri: string): Promise<string> {
+    return getAuthorizeUrl(redirectUri);
+  }
+
+  async exchangeCode(code: string, redirectUri: string): Promise<TokenSet> {
+    return exchangeCodeForTokens(code, redirectUri);
+  }
+
+  async listFiles(folderPath: string): Promise<CloudFile[]> {
+    return listFolder(folderPath);
+  }
+
+  async getDownloadLink(filePath: string): Promise<string> {
+    return getOrCreateSharedLink(filePath);
+  }
+
+  async listFolders(path: string): Promise<Array<{ name: string; path: string }>> {
+    return listDropboxFolders(path);
+  }
 }
 
-export function getAuthorizeUrl(appKey: string, redirectUri: string): string {
+// Register on import
+registerProvider("dropbox", async () => new DropboxProvider());
+
+// --- Internal implementation ---
+
+async function getAuthorizeUrl(redirectUri: string): Promise<string> {
+  const config = await getConfig();
+  if (!config?.dropbox?.appKey) throw new Error("Dropbox app credentials not configured");
   const params = new URLSearchParams({
-    client_id: appKey,
+    client_id: config.dropbox.appKey,
     redirect_uri: redirectUri,
     response_type: "code",
     token_access_type: "offline",
@@ -21,20 +51,23 @@ export function getAuthorizeUrl(appKey: string, redirectUri: string): string {
   return `${AUTH_BASE}/oauth2/authorize?${params}`;
 }
 
-export async function exchangeCodeForTokens(
+async function exchangeCodeForTokens(
   code: string,
-  appKey: string,
-  appSecret: string,
   redirectUri: string
-): Promise<{ accessToken: string; refreshToken: string; expiresIn: number }> {
+): Promise<TokenSet> {
+  const config = await getConfig();
+  if (!config?.dropbox?.appKey || !config?.dropbox?.appSecret) {
+    throw new Error("Dropbox app credentials not configured");
+  }
+
   const res = await fetch(`${API_BASE}/../oauth2/token`, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
       grant_type: "authorization_code",
       code,
-      client_id: appKey,
-      client_secret: appSecret,
+      client_id: config.dropbox.appKey,
+      client_secret: config.dropbox.appSecret,
       redirect_uri: redirectUri,
     }),
   });
@@ -52,11 +85,10 @@ export async function exchangeCodeForTokens(
   };
 }
 
-export async function refreshAccessToken(
-  config: AppConfig
-): Promise<string> {
-  if (!config.dropbox?.refreshToken) {
-    throw new Error("No refresh token available");
+async function getAccessToken(): Promise<string> {
+  const config = await getConfig();
+  if (!config?.dropbox?.refreshToken) {
+    throw new Error("Dropbox not connected");
   }
 
   // Check if current token is still valid
@@ -94,17 +126,9 @@ export async function refreshAccessToken(
   return data.access_token;
 }
 
-async function getAccessToken(): Promise<string> {
-  const config = await getConfig();
-  if (!config?.dropbox) throw new Error("Dropbox not connected");
-  return refreshAccessToken(config);
-}
-
-export async function listFolder(
-  folderPath: string
-): Promise<DropboxFile[]> {
+async function listFolder(folderPath: string): Promise<CloudFile[]> {
   const token = await getAccessToken();
-  const files: DropboxFile[] = [];
+  const files: CloudFile[] = [];
 
   let hasMore = true;
   let cursor: string | undefined;
@@ -141,7 +165,6 @@ export async function listFolder(
           path: entry.path_display || entry.path_lower,
           size: entry.size,
           modified: entry.server_modified,
-          isDownloadable: entry.is_downloadable !== false,
         });
       }
     }
@@ -153,12 +176,9 @@ export async function listFolder(
   return files;
 }
 
-export async function getOrCreateSharedLink(
-  filePath: string
-): Promise<string> {
+async function getOrCreateSharedLink(filePath: string): Promise<string> {
   const token = await getAccessToken();
 
-  // Try to create a new shared link
   const createRes = await fetch(
     `${API_BASE}/sharing/create_shared_link_with_settings`,
     {
@@ -179,17 +199,12 @@ export async function getOrCreateSharedLink(
     return toDirectDownload(data.url);
   }
 
-  // If link already exists, fetch it
   const errorData = await createRes.json();
-  if (
-    errorData?.error?.[".tag"] === "shared_link_already_exists"
-  ) {
+  if (errorData?.error?.[".tag"] === "shared_link_already_exists") {
     return getExistingSharedLink(token, filePath);
   }
 
-  throw new Error(
-    `Failed to create shared link: ${JSON.stringify(errorData)}`
-  );
+  throw new Error(`Failed to create shared link: ${JSON.stringify(errorData)}`);
 }
 
 async function getExistingSharedLink(
@@ -218,7 +233,7 @@ async function getExistingSharedLink(
   throw new Error(`No shared links found for ${filePath}`);
 }
 
-export async function listFolders(
+async function listDropboxFolders(
   path: string = ""
 ): Promise<Array<{ name: string; path: string }>> {
   const token = await getAccessToken();
@@ -247,31 +262,5 @@ export async function listFolders(
 }
 
 function toDirectDownload(url: string): string {
-  // Replace dl=0 with dl=1 for direct download
   return url.replace(/\?dl=0$/, "?dl=1").replace(/&dl=0$/, "&dl=1");
-}
-
-const MEDIA_EXTENSIONS = new Set([
-  ".mp3", ".m4a", ".mp4", ".m4v", ".mov", ".wav", ".ogg", ".flac", ".aac",
-]);
-
-function isMediaFile(filename: string): boolean {
-  const ext = filename.slice(filename.lastIndexOf(".")).toLowerCase();
-  return MEDIA_EXTENSIONS.has(ext);
-}
-
-export function getMimeType(filename: string): string {
-  const ext = filename.slice(filename.lastIndexOf(".")).toLowerCase();
-  const map: Record<string, string> = {
-    ".mp3": "audio/mpeg",
-    ".m4a": "audio/x-m4a",
-    ".mp4": "video/mp4",
-    ".m4v": "video/x-m4v",
-    ".mov": "video/quicktime",
-    ".wav": "audio/wav",
-    ".ogg": "audio/ogg",
-    ".flac": "audio/flac",
-    ".aac": "audio/aac",
-  };
-  return map[ext] || "application/octet-stream";
 }

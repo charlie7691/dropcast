@@ -3,7 +3,11 @@ import { randomUUID } from "node:crypto";
 import { jwtAuth } from "../middleware/jwt.js";
 import { getStorage } from "../services/storage.js";
 import { log } from "../services/logger.js";
-import type { FeedConfig, FeedCache } from "../services/rss-generator.js";
+import {
+  normalizeFeedConfig,
+  type FeedConfig,
+  type FeedCache,
+} from "../services/rss-generator.js";
 
 const feeds = new Hono();
 
@@ -15,8 +19,8 @@ feeds.get("/", async (c) => {
   const feedList: FeedConfig[] = [];
 
   for (const key of keys) {
-    const feed = await storage.readJson<FeedConfig>(key);
-    if (feed) feedList.push(feed);
+    const raw = await storage.readJson<Record<string, unknown>>(key);
+    if (raw) feedList.push(normalizeFeedConfig(raw));
   }
 
   return c.json({ feeds: feedList });
@@ -28,13 +32,14 @@ feeds.post("/", async (c) => {
 
   const feed: FeedConfig = {
     ...body,
+    provider: body.provider || "dropbox",
     id: randomUUID().slice(0, 8),
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
 
   await storage.writeJson(`feeds/${feed.id}.json`, feed);
-  await log("feed_created", `Created feed "${feed.title}" (${feed.id})`);
+  await log("feed_created", `Created feed "${feed.title}" (${feed.id}, ${feed.provider})`);
 
   return c.json(feed, 201);
 });
@@ -43,8 +48,9 @@ feeds.get("/:id", async (c) => {
   const id = c.req.param("id");
   const storage = getStorage();
 
-  const feed = await storage.readJson<FeedConfig>(`feeds/${id}.json`);
-  if (!feed) return c.json({ error: "Feed not found" }, 404);
+  const raw = await storage.readJson<Record<string, unknown>>(`feeds/${id}.json`);
+  if (!raw) return c.json({ error: "Feed not found" }, 404);
+  const feed = normalizeFeedConfig(raw);
 
   const cache = await storage.readJson<FeedCache>(`cache/${id}-meta.json`);
 
@@ -60,8 +66,9 @@ feeds.put("/:id", async (c) => {
   const id = c.req.param("id");
   const storage = getStorage();
 
-  const existing = await storage.readJson<FeedConfig>(`feeds/${id}.json`);
-  if (!existing) return c.json({ error: "Feed not found" }, 404);
+  const raw = await storage.readJson<Record<string, unknown>>(`feeds/${id}.json`);
+  if (!raw) return c.json({ error: "Feed not found" }, 404);
+  const existing = normalizeFeedConfig(raw);
 
   const body = await c.req.json<Partial<FeedConfig>>();
   const updated: FeedConfig = {
@@ -82,10 +89,10 @@ feeds.post("/:id/refresh", async (c) => {
   const id = c.req.param("id");
   const storage = getStorage();
 
-  const feed = await storage.readJson<FeedConfig>(`feeds/${id}.json`);
-  if (!feed) return c.json({ error: "Feed not found" }, 404);
+  const raw = await storage.readJson<Record<string, unknown>>(`feeds/${id}.json`);
+  if (!raw) return c.json({ error: "Feed not found" }, 404);
+  const feed = normalizeFeedConfig(raw);
 
-  // Clear cache timestamp to force refresh on next RSS access
   const cache = await storage.readJson<FeedCache>(`cache/${id}-meta.json`);
   if (cache) {
     cache.lastRefreshed = "";
@@ -100,8 +107,9 @@ feeds.delete("/:id", async (c) => {
   const id = c.req.param("id");
   const storage = getStorage();
 
-  const feed = await storage.readJson<FeedConfig>(`feeds/${id}.json`);
-  if (!feed) return c.json({ error: "Feed not found" }, 404);
+  const raw = await storage.readJson<Record<string, unknown>>(`feeds/${id}.json`);
+  if (!raw) return c.json({ error: "Feed not found" }, 404);
+  const feed = normalizeFeedConfig(raw);
 
   await storage.delete(`feeds/${id}.json`);
   await storage.delete(`cache/${id}.xml`);

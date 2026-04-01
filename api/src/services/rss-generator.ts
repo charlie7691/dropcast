@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { getMimeType } from "./dropbox.js";
+import { getMimeType, type ProviderId } from "./provider.js";
 
 export interface FeedConfig {
   id: string;
@@ -11,7 +11,8 @@ export interface FeedConfig {
   category: string;
   explicit: boolean;
   imageUrl: string;
-  dropboxFolder: string;
+  provider: ProviderId;
+  folderPath: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -19,7 +20,7 @@ export interface FeedConfig {
 export interface Episode {
   id: string;
   filename: string;
-  dropboxPath: string;
+  providerPath: string;
   sharedLink: string;
   size: number;
   mimeType: string;
@@ -46,12 +47,11 @@ function toRfc2822(date: string): string {
 }
 
 function episodeTitle(filename: string): string {
-  // Strip extension and clean up
   return filename.replace(/\.[^.]+$/, "").replace(/[_-]/g, " ");
 }
 
-function episodeGuid(dropboxPath: string): string {
-  return createHash("sha256").update(dropboxPath).digest("hex").slice(0, 16);
+function episodeGuid(providerPath: string): string {
+  return createHash("sha256").update(providerPath).digest("hex").slice(0, 16);
 }
 
 export function generateRssXml(
@@ -68,7 +68,7 @@ export function generateRssXml(
       (ep) => `    <item>
       <title>${escapeXml(episodeTitle(ep.filename))}</title>
       <enclosure url="${escapeXml(ep.sharedLink)}" length="${ep.size}" type="${ep.mimeType}" />
-      <guid isPermaLink="false">${episodeGuid(ep.dropboxPath)}</guid>
+      <guid isPermaLink="false">${episodeGuid(ep.providerPath)}</guid>
       <pubDate>${toRfc2822(ep.modifiedAt)}</pubDate>
       <description>${escapeXml(episodeTitle(ep.filename))}</description>
       <itunes:explicit>${feed.explicit ? "true" : "false"}</itunes:explicit>
@@ -106,10 +106,22 @@ export function createEpisodeFromFile(
   return {
     id: episodeGuid(file.path),
     filename: file.name,
-    dropboxPath: file.path,
+    providerPath: file.path,
     sharedLink,
     size: file.size,
     mimeType: getMimeType(file.name),
     modifiedAt: file.modified,
   };
+}
+
+/** Normalize legacy feed configs that used `dropboxFolder` / no `provider` field */
+export function normalizeFeedConfig(raw: Record<string, unknown>): FeedConfig {
+  const feed = raw as FeedConfig;
+  if (!feed.provider) {
+    feed.provider = "dropbox";
+  }
+  if (!feed.folderPath && (raw as { dropboxFolder?: string }).dropboxFolder) {
+    feed.folderPath = (raw as { dropboxFolder?: string }).dropboxFolder!;
+  }
+  return feed;
 }
