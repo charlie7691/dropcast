@@ -20,11 +20,17 @@ interface FeedDetail {
   category: string;
   explicit: boolean;
   imageUrl: string;
-  dropboxFolder: string;
+  provider: string;
+  folderPath: string;
   episodeCount: number;
   lastRefreshed: string | null;
   episodes: Episode[];
 }
+
+const providerLabels: Record<string, string> = {
+  dropbox: "Dropbox",
+  onedrive: "OneDrive",
+};
 
 export default function FeedDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -71,7 +77,6 @@ export default function FeedDetailPage() {
     setLoading(true);
     try {
       await api.post(`/api/feeds/${id}/refresh`);
-      // Trigger actual refresh by hitting RSS endpoint
       await fetch(`/rss/${id}`);
       await loadFeed();
     } finally {
@@ -95,7 +100,12 @@ export default function FeedDetailPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">{feed.title}</h2>
+        <div>
+          <h2 className="text-2xl font-bold">{feed.title}</h2>
+          <span className="inline-block bg-gray-800 text-gray-300 px-2 py-0.5 rounded text-xs mt-1">
+            {providerLabels[feed.provider] || feed.provider}
+          </span>
+        </div>
         <div className="flex gap-2">
           <button
             onClick={() => setEditing(!editing)}
@@ -125,7 +135,6 @@ export default function FeedDetailPage() {
         </div>
       )}
 
-      {/* RSS URL */}
       <div className="bg-gray-900 border border-gray-800 rounded-lg p-4 flex items-center justify-between">
         <div>
           <div className="text-sm text-gray-400 mb-1">RSS Feed URL</div>
@@ -141,7 +150,6 @@ export default function FeedDetailPage() {
         </button>
       </div>
 
-      {/* Feed info / edit form */}
       {editing ? (
         <form
           onSubmit={handleSave}
@@ -161,11 +169,9 @@ export default function FeedDetailPage() {
               className="px-3 py-2 bg-gray-800 border border-gray-700 rounded focus:outline-none focus:border-blue-500"
             />
             <input
-              placeholder="Dropbox Folder"
-              value={form.dropboxFolder || ""}
-              onChange={(e) =>
-                setForm({ ...form, dropboxFolder: e.target.value })
-              }
+              placeholder="Folder Path"
+              value={form.folderPath || ""}
+              onChange={(e) => setForm({ ...form, folderPath: e.target.value })}
               className="px-3 py-2 bg-gray-800 border border-gray-700 rounded focus:outline-none focus:border-blue-500"
             />
             <input
@@ -193,17 +199,17 @@ export default function FeedDetailPage() {
       ) : (
         <div className="bg-gray-900 border border-gray-800 rounded-lg p-6 grid grid-cols-2 gap-4 text-sm">
           <div>
-            <span className="text-gray-400">Dropbox Folder:</span>{" "}
-            {feed.dropboxFolder}
+            <span className="text-gray-400">Provider:</span>{" "}
+            {providerLabels[feed.provider] || feed.provider}
+          </div>
+          <div>
+            <span className="text-gray-400">Folder:</span> {feed.folderPath}
           </div>
           <div>
             <span className="text-gray-400">Author:</span> {feed.author}
           </div>
           <div>
             <span className="text-gray-400">Category:</span> {feed.category}
-          </div>
-          <div>
-            <span className="text-gray-400">Language:</span> {feed.language}
           </div>
           <div className="col-span-2">
             <span className="text-gray-400">Description:</span>{" "}
@@ -222,7 +228,6 @@ export default function FeedDetailPage() {
         </div>
       )}
 
-      {/* Episode list */}
       {feed.episodes.length > 0 && (
         <div>
           <h3 className="text-lg font-semibold mb-3">Episodes</h3>

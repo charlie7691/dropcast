@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../lib/api";
 
-interface DropboxStatus {
+interface ProviderStatus {
   connected: boolean;
   hasCredentials: boolean;
 }
@@ -10,7 +10,8 @@ interface DropboxStatus {
 interface Feed {
   id: string;
   title: string;
-  dropboxFolder: string;
+  provider: string;
+  folderPath: string;
 }
 
 interface LogEntry {
@@ -20,17 +21,22 @@ interface LogEntry {
 }
 
 export default function Dashboard() {
-  const [dbStatus, setDbStatus] = useState<DropboxStatus | null>(null);
+  const [dropbox, setDropbox] = useState<ProviderStatus | null>(null);
+  const [onedrive, setOnedrive] = useState<ProviderStatus | null>(null);
   const [feeds, setFeeds] = useState<Feed[]>([]);
   const [logs, setLogs] = useState<LogEntry[]>([]);
 
   useEffect(() => {
-    api.get<DropboxStatus>("/api/dropbox/status").then(setDbStatus);
+    api.get<ProviderStatus>("/api/dropbox/status").then(setDropbox).catch(() => {});
+    api.get<ProviderStatus>("/api/onedrive/status").then(setOnedrive).catch(() => {});
     api.get<{ feeds: Feed[] }>("/api/feeds").then((d) => setFeeds(d.feeds));
-    api
-      .get<{ logs: LogEntry[] }>("/api/logs")
-      .then((d) => setLogs(d.logs.slice(0, 5)));
+    api.get<{ logs: LogEntry[] }>("/api/logs").then((d) => setLogs(d.logs.slice(0, 5)));
   }, []);
+
+  function statusLabel(s: ProviderStatus | null): string {
+    if (!s) return "Loading...";
+    return s.connected ? "Connected" : "Not connected";
+  }
 
   return (
     <div className="space-y-8">
@@ -39,14 +45,16 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-gray-900 border border-gray-800 rounded-lg p-4">
           <div className="text-sm text-gray-400 mb-1">Dropbox</div>
-          <div className="text-lg font-semibold">
-            {dbStatus === null
-              ? "Loading..."
-              : dbStatus.connected
-                ? "Connected"
-                : "Not connected"}
-          </div>
-          <Link to="/dropbox" className="text-sm text-blue-400 hover:underline">
+          <div className="text-lg font-semibold">{statusLabel(dropbox)}</div>
+          <Link to="/connections" className="text-sm text-blue-400 hover:underline">
+            Manage
+          </Link>
+        </div>
+
+        <div className="bg-gray-900 border border-gray-800 rounded-lg p-4">
+          <div className="text-sm text-gray-400 mb-1">OneDrive</div>
+          <div className="text-lg font-semibold">{statusLabel(onedrive)}</div>
+          <Link to="/connections" className="text-sm text-blue-400 hover:underline">
             Manage
           </Link>
         </div>
@@ -58,19 +66,16 @@ export default function Dashboard() {
             Manage
           </Link>
         </div>
-
-        <div className="bg-gray-900 border border-gray-800 rounded-lg p-4">
-          <div className="text-sm text-gray-400 mb-1">Recent Activity</div>
-          <div className="text-lg font-semibold">{logs.length} entries</div>
-          <Link to="/logs" className="text-sm text-blue-400 hover:underline">
-            View all
-          </Link>
-        </div>
       </div>
 
       {logs.length > 0 && (
         <div>
-          <h3 className="text-lg font-semibold mb-3">Recent Activity</h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-lg font-semibold">Recent Activity</h3>
+            <Link to="/logs" className="text-sm text-blue-400 hover:underline">
+              View all
+            </Link>
+          </div>
           <div className="bg-gray-900 border border-gray-800 rounded-lg divide-y divide-gray-800">
             {logs.map((log, i) => (
               <div key={i} className="px-4 py-3 flex justify-between text-sm">

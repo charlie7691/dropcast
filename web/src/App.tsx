@@ -2,7 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { isAuthenticated } from "./lib/api";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
-import DropboxConnect from "./pages/DropboxConnect";
+import Connections from "./pages/Connections";
 import Feeds from "./pages/Feeds";
 import FeedDetail from "./pages/FeedDetail";
 import Logs from "./pages/Logs";
@@ -29,7 +29,7 @@ export default function App() {
           }
         >
           <Route index element={<Dashboard />} />
-          <Route path="dropbox" element={<DropboxConnect />} />
+          <Route path="connections" element={<Connections />} />
           <Route path="feeds" element={<Feeds />} />
           <Route path="feeds/:id" element={<FeedDetail />} />
           <Route path="logs" element={<Logs />} />

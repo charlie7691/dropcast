@@ -3,7 +3,7 @@ import { clearToken } from "../lib/api";
 
 const navItems = [
   { to: "/", label: "Dashboard" },
-  { to: "/dropbox", label: "Dropbox" },
+  { to: "/connections", label: "Connections" },
   { to: "/feeds", label: "Feeds" },
   { to: "/logs", label: "Logs" },
 ];

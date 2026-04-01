@@ -12,7 +12,8 @@ interface Feed {
   category: string;
   explicit: boolean;
   imageUrl: string;
-  dropboxFolder: string;
+  provider: string;
+  folderPath: string;
 }
 
 const defaultFeed = {
@@ -24,7 +25,13 @@ const defaultFeed = {
   category: "Technology",
   explicit: false,
   imageUrl: "",
-  dropboxFolder: "",
+  provider: "dropbox",
+  folderPath: "",
+};
+
+const providerLabels: Record<string, string> = {
+  dropbox: "Dropbox",
+  onedrive: "OneDrive",
 };
 
 export default function Feeds() {
@@ -109,12 +116,22 @@ export default function Feeds() {
               className="px-3 py-2 bg-gray-800 border border-gray-700 rounded focus:outline-none focus:border-blue-500"
               required
             />
+            <select
+              value={form.provider}
+              onChange={(e) => setForm({ ...form, provider: e.target.value })}
+              className="px-3 py-2 bg-gray-800 border border-gray-700 rounded focus:outline-none focus:border-blue-500"
+            >
+              <option value="dropbox">Dropbox</option>
+              <option value="onedrive">OneDrive</option>
+            </select>
             <input
-              placeholder="Dropbox Folder (e.g. /podcasts/show1)"
-              value={form.dropboxFolder}
-              onChange={(e) =>
-                setForm({ ...form, dropboxFolder: e.target.value })
+              placeholder={
+                form.provider === "onedrive"
+                  ? "OneDrive Folder (e.g. /Podcasts/Show1)"
+                  : "Dropbox Folder (e.g. /podcasts/show1)"
               }
+              value={form.folderPath}
+              onChange={(e) => setForm({ ...form, folderPath: e.target.value })}
               className="px-3 py-2 bg-gray-800 border border-gray-700 rounded focus:outline-none focus:border-blue-500"
               required
             />
@@ -134,7 +151,7 @@ export default function Feeds() {
               placeholder="Image URL (optional)"
               value={form.imageUrl}
               onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
-              className="px-3 py-2 bg-gray-800 border border-gray-700 rounded focus:outline-none focus:border-blue-500 md:col-span-2"
+              className="px-3 py-2 bg-gray-800 border border-gray-700 rounded focus:outline-none focus:border-blue-500"
             />
           </div>
           <textarea
@@ -185,7 +202,10 @@ export default function Feeds() {
                   {feed.title}
                 </Link>
                 <div className="text-sm text-gray-400">
-                  {feed.dropboxFolder}
+                  <span className="inline-block bg-gray-800 px-1.5 py-0.5 rounded text-xs mr-2">
+                    {providerLabels[feed.provider] || feed.provider}
+                  </span>
+                  {feed.folderPath}
                 </div>
               </div>
               <div className="flex items-center gap-3">
