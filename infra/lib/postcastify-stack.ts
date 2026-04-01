@@ -60,6 +60,7 @@ export class PostcastifyStack extends cdk.Stack {
       timeout: cdk.Duration.seconds(30),
       environment: {
         DATA_BUCKET: dataBucket.bucketName,
+        BASE_URL: `https://${fullDomain}`,
         NODE_OPTIONS: "--enable-source-maps",
         DROPBOX_APP_KEY: process.env.DROPBOX_APP_KEY || "",
         DROPBOX_APP_SECRET: process.env.DROPBOX_APP_SECRET || "",

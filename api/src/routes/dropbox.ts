@@ -6,7 +6,7 @@ import { getProvider } from "../services/provider.js";
 const dropbox = new Hono();
 
 dropbox.get("/authorize", jwtAuth, async (c) => {
-  const callbackUrl = new URL("/api/dropbox/callback", c.req.url).toString();
+  const callbackUrl = `${process.env.BASE_URL || new URL("/", c.req.url).origin}/api/dropbox/callback`;
   try {
     const provider = await getProvider("dropbox");
     const url = await provider.getAuthorizeUrl(callbackUrl);
@@ -20,7 +20,7 @@ dropbox.get("/callback", async (c) => {
   const code = c.req.query("code");
   if (!code) return c.json({ error: "Missing authorization code" }, 400);
 
-  const callbackUrl = new URL("/api/dropbox/callback", c.req.url).toString();
+  const callbackUrl = `${process.env.BASE_URL || new URL("/", c.req.url).origin}/api/dropbox/callback`;
 
   try {
     const provider = await getProvider("dropbox");
@@ -39,7 +39,8 @@ dropbox.get("/callback", async (c) => {
     };
     await saveConfig(config);
 
-    return c.redirect("/?dropbox=connected");
+    const base = process.env.BASE_URL || new URL("/", c.req.url).origin;
+    return c.redirect(`${base}/?dropbox=connected`);
   } catch (err) {
     return c.json({ error: err instanceof Error ? err.message : "Unknown error" }, 500);
   }
