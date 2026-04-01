@@ -1,4 +1,4 @@
-const TOKEN_KEY = "dropcast_token";
+const TOKEN_KEY = "postcastify_token";
 
 function getToken(): string | null {
   return localStorage.getItem(TOKEN_KEY);

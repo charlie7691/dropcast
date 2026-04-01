@@ -12,6 +12,6 @@ setStorage(new LocalStorage(dataDir));
 const port = 3001;
 
 serve({ fetch: app.fetch, port }, () => {
-  console.log(`Dropcast API running on http://localhost:${port}`);
+  console.log(`Postcastify API running on http://localhost:${port}`);
   console.log(`Data directory: ${dataDir}`);
 });

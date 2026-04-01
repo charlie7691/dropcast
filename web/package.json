@@ -1,5 +1,5 @@
 {
-  "name": "@dropcast/web",
+  "name": "@postcastify/web",
   "private": true,
   "type": "module",
   "scripts": {

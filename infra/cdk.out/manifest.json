@@ -1,28 +1,28 @@
 {
   "version": "53.0.0",
   "artifacts": {
-    "DropcastStack.assets": {
+    "PostcastifyStack.assets": {
       "type": "cdk:asset-manifest",
       "properties": {
-        "file": "DropcastStack.assets.json",
+        "file": "PostcastifyStack.assets.json",
         "requiresBootstrapStackVersion": 6,
         "bootstrapStackVersionSsmParameter": "/cdk-bootstrap/hnb659fds/version"
       }
     },
-    "DropcastStack": {
+    "PostcastifyStack": {
       "type": "aws:cloudformation:stack",
       "environment": "aws://312551563485/us-east-1",
       "properties": {
-        "templateFile": "DropcastStack.template.json",
+        "templateFile": "PostcastifyStack.template.json",
         "terminationProtection": false,
         "validateOnSynth": false,
         "assumeRoleArn": "arn:${AWS::Partition}:iam::312551563485:role/cdk-hnb659fds-deploy-role-312551563485-us-east-1",
         "cloudFormationExecutionRoleArn": "arn:${AWS::Partition}:iam::312551563485:role/cdk-hnb659fds-cfn-exec-role-312551563485-us-east-1",
-        "stackTemplateAssetObjectUrl": "s3://cdk-hnb659fds-assets-312551563485-us-east-1/c66ec4911211f905bc93ec2a2106d23a8cba10f49ff96601c30c47f19009a1e1.json",
+        "stackTemplateAssetObjectUrl": "s3://cdk-hnb659fds-assets-312551563485-us-east-1/571a0578b2baeccf19be69bf34d3f196807d5d19fe4b1fc08aa1d0f2adfc6e99.json",
         "requiresBootstrapStackVersion": 6,
         "bootstrapStackVersionSsmParameter": "/cdk-bootstrap/hnb659fds/version",
         "additionalDependencies": [
-          "DropcastStack.assets"
+          "PostcastifyStack.assets"
         ],
         "lookupRole": {
           "arn": "arn:${AWS::Partition}:iam::312551563485:role/cdk-hnb659fds-lookup-role-312551563485-us-east-1",
@@ -31,10 +31,10 @@
         }
       },
       "dependencies": [
-        "DropcastStack.assets"
+        "PostcastifyStack.assets"
       ],
-      "additionalMetadataFile": "DropcastStack.metadata.json",
-      "displayName": "DropcastStack"
+      "additionalMetadataFile": "PostcastifyStack.metadata.json",
+      "displayName": "PostcastifyStack"
     },
     "Tree": {
       "type": "cdk:tree",

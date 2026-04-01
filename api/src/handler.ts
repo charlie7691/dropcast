@@ -23,7 +23,7 @@ app.use("*", logger());
 app.use("/api/*", cors());
 
 app.get("/api/health", (c) => {
-  return c.json({ status: "ok", service: "dropcast" });
+  return c.json({ status: "ok", service: "postcastify" });
 });
 
 app.route("/api/auth", authRoutes);

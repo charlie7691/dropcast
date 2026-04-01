@@ -14,13 +14,13 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-interface DropcastStackProps extends cdk.StackProps {
+interface PostcastifyStackProps extends cdk.StackProps {
   domainName: string;
   subDomain: string;
 }
 
-export class DropcastStack extends cdk.Stack {
-  constructor(scope: Construct, id: string, props: DropcastStackProps) {
+export class PostcastifyStack extends cdk.Stack {
+  constructor(scope: Construct, id: string, props: PostcastifyStackProps) {
     super(scope, id, props);
 
     const fullDomain = `${props.subDomain}.${props.domainName}`;
@@ -35,12 +35,12 @@ export class DropcastStack extends cdk.Stack {
     const certificate = new acm.Certificate(this, "Certificate", {
       domainName: fullDomain,
       validation: acm.CertificateValidation.fromDns(zone),
-      certificateName: `dropcast-${props.subDomain}`,
+      certificateName: `postcastify-${props.subDomain}`,
     });
 
     // --- S3: Data Bucket ---
     const dataBucket = new s3.Bucket(this, "DataBucket", {
-      bucketName: `dropcast-data-${this.account}`,
+      bucketName: `postcastify-data-${this.account}`,
       removalPolicy: cdk.RemovalPolicy.RETAIN,
       encryption: s3.BucketEncryption.S3_MANAGED,
     });

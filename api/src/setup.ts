@@ -15,7 +15,7 @@ async function prompt(question: string): Promise<string> {
 }
 
 async function main() {
-  console.log("\n  Dropcast Setup\n");
+  console.log("\n  Postcastify Setup\n");
 
   const __dirname = dirname(fileURLToPath(import.meta.url));
   const dataDir = resolve(__dirname, "..", "..", "data");

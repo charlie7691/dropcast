@@ -1,9 +1,9 @@
 {
-  "name": "dropcast",
+  "name": "postcastify",
   "private": true,
   "scripts": {
     "dev": "pnpm --parallel -r run dev",
-    "build": "pnpm --filter @dropcast/web run build",
+    "build": "pnpm --filter @postcastify/web run build",
     "setup": "tsx api/src/setup.ts",
     "deploy": "pnpm run build && cd infra && npx cdk deploy --require-approval never",
     "destroy": "cd infra && npx cdk destroy --force"

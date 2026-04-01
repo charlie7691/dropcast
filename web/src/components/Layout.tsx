@@ -21,7 +21,7 @@ export default function Layout() {
       <nav className="border-b border-gray-800 bg-gray-900">
         <div className="max-w-5xl mx-auto px-4 flex items-center justify-between h-14">
           <div className="flex items-center gap-6">
-            <span className="font-bold text-lg">Dropcast</span>
+            <span className="font-bold text-lg">Postcastify</span>
             {navItems.map((item) => (
               <NavLink
                 key={item.to}
