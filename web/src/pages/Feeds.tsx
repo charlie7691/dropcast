@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../lib/api";
+import FolderPicker from "../components/FolderPicker";
 
 interface Feed {
   id: string;
@@ -124,16 +125,10 @@ export default function Feeds() {
               <option value="dropbox">Dropbox</option>
               <option value="onedrive">OneDrive</option>
             </select>
-            <input
-              placeholder={
-                form.provider === "onedrive"
-                  ? "OneDrive Folder (e.g. /Podcasts/Show1)"
-                  : "Dropbox Folder (e.g. /podcasts/show1)"
-              }
+            <FolderPicker
+              provider={form.provider}
               value={form.folderPath}
-              onChange={(e) => setForm({ ...form, folderPath: e.target.value })}
-              className="px-3 py-2 bg-gray-800 border border-gray-700 rounded focus:outline-none focus:border-blue-500"
-              required
+              onChange={(path) => setForm({ ...form, folderPath: path })}
             />
             <input
               placeholder="Language (e.g. en)"
