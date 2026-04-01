@@ -36,7 +36,7 @@ rss.get("/:id", async (c) => {
   if (needsRefresh) {
     try {
       const updatedCache = await refreshFeed(feed, cache);
-      const feedUrl = new URL(`/rss/${id}`, c.req.url).toString();
+      const feedUrl = `${process.env.BASE_URL || new URL("/", c.req.url).origin}/rss/${id}`;
       const xml = generateRssXml(feed, updatedCache.episodes, feedUrl);
 
       await storage.writeJson(`cache/${id}-meta.json`, updatedCache);
@@ -54,7 +54,9 @@ rss.get("/:id", async (c) => {
         c.header("Content-Type", "application/rss+xml; charset=utf-8");
         return c.body(staleXml);
       }
-      return c.text("Feed refresh failed and no cache available", 500);
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      console.error(`[RSS] Feed refresh failed for ${id}:`, msg);
+      return c.text(`Feed refresh failed: ${msg}`, 500);
     }
   }
 
@@ -66,7 +68,7 @@ rss.get("/:id", async (c) => {
 
   try {
     const updatedCache = await refreshFeed(feed, null);
-    const feedUrl = new URL(`/rss/${id}`, c.req.url).toString();
+    const feedUrl = `${process.env.BASE_URL || new URL("/", c.req.url).origin}/rss/${id}`;
     const xml = generateRssXml(feed, updatedCache.episodes, feedUrl);
 
     await storage.writeJson(`cache/${id}-meta.json`, updatedCache);
@@ -76,6 +78,7 @@ rss.get("/:id", async (c) => {
     return c.body(xml);
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Unknown error";
+    console.error(`[RSS] Feed generation failed for ${id}:`, msg);
     return c.text(`Feed generation failed: ${msg}`, 500);
   }
 });

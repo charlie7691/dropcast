@@ -74,4 +74,16 @@ dropbox.get("/folders", jwtAuth, async (c) => {
   }
 });
 
+// List media files in a folder
+dropbox.get("/files", jwtAuth, async (c) => {
+  const path = c.req.query("path") || "";
+  try {
+    const provider = await getProvider("dropbox");
+    const files = await provider.listFiles(path);
+    return c.json({ path, fileCount: files.length, files });
+  } catch (err) {
+    return c.json({ error: err instanceof Error ? err.message : "Unknown error" }, 500);
+  }
+});
+
 export default dropbox;

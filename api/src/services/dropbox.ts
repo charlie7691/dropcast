@@ -192,12 +192,15 @@ async function getOrCreateSharedLink(filePath: string): Promise<string> {
     return toDirectDownload(data.url);
   }
 
-  const errorData = await createRes.json();
-  if (errorData?.error?.[".tag"] === "shared_link_already_exists") {
+  const errorText = await createRes.text();
+  let errorData: Record<string, unknown> | null = null;
+  try { errorData = JSON.parse(errorText); } catch { /* non-JSON response */ }
+
+  if (errorData?.error && (errorData.error as Record<string, string>)[".tag"] === "shared_link_already_exists") {
     return getExistingSharedLink(token, filePath);
   }
 
-  throw new Error(`Failed to create shared link: ${JSON.stringify(errorData)}`);
+  throw new Error(`Failed to create shared link (${createRes.status}): ${errorText.slice(0, 200)}`);
 }
 
 async function getExistingSharedLink(

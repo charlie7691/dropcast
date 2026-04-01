@@ -76,24 +76,30 @@ export function generateRssXml(
     )
     .join("\n");
 
+  const title = feed.title || "Untitled Podcast";
+  const description = feed.description || title;
+  const author = feed.author || title;
+  const language = feed.language || "en";
+
+  const optionalTags = [
+    feed.email ? `    <itunes:owner>\n      <itunes:name>${escapeXml(author)}</itunes:name>\n      <itunes:email>${escapeXml(feed.email)}</itunes:email>\n    </itunes:owner>` : "",
+    feed.category ? `    <itunes:category text="${escapeXml(feed.category)}" />` : "",
+    feed.imageUrl ? `    <itunes:image href="${escapeXml(feed.imageUrl)}" />` : "",
+  ].filter(Boolean).join("\n");
+
   return `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0"
   xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd"
   xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>${escapeXml(feed.title)}</title>
-    <description>${escapeXml(feed.description)}</description>
-    <language>${escapeXml(feed.language)}</language>
+    <title>${escapeXml(title)}</title>
+    <description>${escapeXml(description)}</description>
+    <language>${escapeXml(language)}</language>
     <link>${escapeXml(feedUrl)}</link>
     <atom:link href="${escapeXml(feedUrl)}" rel="self" type="application/rss+xml" />
-    <itunes:author>${escapeXml(feed.author)}</itunes:author>
-    <itunes:owner>
-      <itunes:name>${escapeXml(feed.author)}</itunes:name>
-      <itunes:email>${escapeXml(feed.email)}</itunes:email>
-    </itunes:owner>
+    <itunes:author>${escapeXml(author)}</itunes:author>
     <itunes:explicit>${feed.explicit ? "true" : "false"}</itunes:explicit>
-    <itunes:category text="${escapeXml(feed.category)}" />
-${feed.imageUrl ? `    <itunes:image href="${escapeXml(feed.imageUrl)}" />` : ""}
+${optionalTags}
 ${items}
   </channel>
 </rss>`;
