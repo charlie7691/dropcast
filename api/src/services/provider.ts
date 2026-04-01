@@ -41,7 +41,7 @@ export async function getProvider(id: ProviderId): Promise<CloudProvider> {
 // Shared utilities
 
 const MEDIA_EXTENSIONS = new Set([
-  ".mp3", ".m4a", ".mp4", ".m4v", ".mov", ".wav", ".ogg", ".flac", ".aac",
+  ".mp3", ".m4a", ".m4b", ".mp4", ".m4v", ".mov", ".wav", ".ogg", ".flac", ".aac",
 ]);
 
 export function isMediaFile(filename: string): boolean {
@@ -54,6 +54,7 @@ export function getMimeType(filename: string): string {
   const map: Record<string, string> = {
     ".mp3": "audio/mpeg",
     ".m4a": "audio/x-m4a",
+    ".m4b": "audio/x-m4b",
     ".mp4": "video/mp4",
     ".m4v": "video/x-m4v",
     ".mov": "video/quicktime",
