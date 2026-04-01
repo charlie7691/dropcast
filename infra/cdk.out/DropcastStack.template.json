@@ -353,14 +353,18 @@
    "Properties": {
     "Code": {
      "S3Bucket": "cdk-hnb659fds-assets-312551563485-us-east-1",
-     "S3Key": "882ce69cba05e47c5d1ad02f24c9dccb93d66244da99b0368f13ed3d1f726a85.zip"
+     "S3Key": "a0ffe4633665554351193132f70fd88b38bd5deba8fed3d5d905ec36923377f7.zip"
     },
     "Environment": {
      "Variables": {
       "DATA_BUCKET": {
        "Ref": "DataBucketE3889A50"
       },
-      "NODE_OPTIONS": "--enable-source-maps"
+      "NODE_OPTIONS": "--enable-source-maps",
+      "DROPBOX_APP_KEY": "",
+      "DROPBOX_APP_SECRET": "",
+      "ONEDRIVE_CLIENT_ID": "",
+      "ONEDRIVE_CLIENT_SECRET": ""
      }
     },
     "Handler": "index.handler",
@@ -380,7 +384,7 @@
    ],
    "Metadata": {
     "aws:cdk:path": "DropcastStack/ApiFunction/Resource",
-    "aws:asset:path": "asset.882ce69cba05e47c5d1ad02f24c9dccb93d66244da99b0368f13ed3d1f726a85",
+    "aws:asset:path": "asset.a0ffe4633665554351193132f70fd88b38bd5deba8fed3d5d905ec36923377f7",
     "aws:asset:is-bundled": true,
     "aws:asset:property": "Code"
    }
@@ -626,7 +630,7 @@
      "cdk-hnb659fds-assets-312551563485-us-east-1"
     ],
     "SourceObjectKeys": [
-     "af78213613fb2a124babf0943ef5e6a46362f1c920fc54207070dd526a638b68.zip"
+     "8d44bf5705046c2b4f08bdcfc37ce79b94c1321bcadaffc3cb49c5c1eab0c9f5.zip"
     ],
     "DestinationBucketName": {
      "Ref": "WebBucket12880F5B"

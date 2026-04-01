@@ -10,22 +10,11 @@ interface ProviderConfig {
   id: string;
   name: string;
   apiPath: string;
-  description: string;
 }
 
 const providers: ProviderConfig[] = [
-  {
-    id: "dropbox",
-    name: "Dropbox",
-    apiPath: "dropbox",
-    description: "Connect your Dropbox account to use folders as podcast sources.",
-  },
-  {
-    id: "onedrive",
-    name: "OneDrive",
-    apiPath: "onedrive",
-    description: "Connect your OneDrive account to use folders as podcast sources.",
-  },
+  { id: "dropbox", name: "Dropbox", apiPath: "dropbox" },
+  { id: "onedrive", name: "OneDrive", apiPath: "onedrive" },
 ];
 
 export default function Connections() {
@@ -92,19 +81,14 @@ export default function Connections() {
               key={provider.id}
               className="bg-gray-900 border border-gray-800 rounded-lg p-6"
             >
-              <h3 className="text-lg font-semibold mb-2">{provider.name}</h3>
+              <h3 className="text-lg font-semibold mb-4">{provider.name}</h3>
 
               {!status ? (
                 <p className="text-gray-400 text-sm">Loading...</p>
               ) : !status.hasCredentials ? (
-                <div>
-                  <p className="text-gray-400 text-sm mb-2">
-                    {provider.name} app credentials not configured.
-                  </p>
-                  <p className="text-gray-500 text-xs">
-                    Run <code className="bg-gray-800 px-1 rounded">pnpm run setup</code>{" "}
-                    to configure.
-                  </p>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-gray-600 rounded-full" />
+                  <span className="text-sm text-gray-500">Not available</span>
                 </div>
               ) : status.connected ? (
                 <div>
@@ -122,19 +106,18 @@ export default function Connections() {
                 </div>
               ) : (
                 <div>
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="w-3 h-3 bg-gray-500 rounded-full" />
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="w-3 h-3 bg-yellow-500 rounded-full" />
                     <span className="text-sm text-gray-400">Not connected</span>
                   </div>
-                  <p className="text-gray-400 text-sm mb-4">
-                    {provider.description}
-                  </p>
                   <button
                     onClick={() => handleConnect(provider)}
                     disabled={loading === provider.id}
                     className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded text-sm"
                   >
-                    {loading === provider.id ? "Connecting..." : `Connect ${provider.name}`}
+                    {loading === provider.id
+                      ? "Connecting..."
+                      : `Connect ${provider.name}`}
                   </button>
                 </div>
               )}

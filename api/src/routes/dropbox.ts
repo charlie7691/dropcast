@@ -27,13 +27,16 @@ dropbox.get("/callback", async (c) => {
     const tokens = await provider.exchangeCode(code, callbackUrl);
 
     const config = await getConfig();
-    if (!config?.dropbox) return c.json({ error: "Dropbox not configured" }, 500);
+    if (!config) return c.json({ error: "App not configured" }, 500);
 
-    config.dropbox.refreshToken = tokens.refreshToken;
-    config.dropbox.accessToken = tokens.accessToken;
-    config.dropbox.accessTokenExpiry = new Date(
-      Date.now() + tokens.expiresIn * 1000
-    ).toISOString();
+    config.dropbox = {
+      ...config.dropbox,
+      refreshToken: tokens.refreshToken,
+      accessToken: tokens.accessToken,
+      accessTokenExpiry: new Date(
+        Date.now() + tokens.expiresIn * 1000
+      ).toISOString(),
+    };
     await saveConfig(config);
 
     return c.redirect("/?dropbox=connected");
@@ -46,16 +49,14 @@ dropbox.get("/status", jwtAuth, async (c) => {
   const config = await getConfig();
   return c.json({
     connected: !!config?.dropbox?.refreshToken,
-    hasCredentials: !!config?.dropbox?.appKey,
+    hasCredentials: !!(process.env.DROPBOX_APP_KEY && process.env.DROPBOX_APP_SECRET),
   });
 });
 
 dropbox.post("/disconnect", jwtAuth, async (c) => {
   const config = await getConfig();
-  if (config?.dropbox) {
-    delete config.dropbox.refreshToken;
-    delete config.dropbox.accessToken;
-    delete config.dropbox.accessTokenExpiry;
+  if (config) {
+    delete config.dropbox;
     await saveConfig(config);
   }
   return c.json({ disconnected: true });

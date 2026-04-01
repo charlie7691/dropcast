@@ -10,16 +10,20 @@ import {
 const AUTH_BASE = "https://login.microsoftonline.com/common/oauth2/v2.0";
 const GRAPH_BASE = "https://graph.microsoft.com/v1.0";
 
+function getCredentials() {
+  const clientId = process.env.ONEDRIVE_CLIENT_ID;
+  const clientSecret = process.env.ONEDRIVE_CLIENT_SECRET;
+  if (!clientId || !clientSecret) throw new Error("OneDrive credentials not configured (set ONEDRIVE_CLIENT_ID and ONEDRIVE_CLIENT_SECRET)");
+  return { clientId, clientSecret };
+}
+
 class OneDriveProvider implements CloudProvider {
   id = "onedrive" as const;
 
   async getAuthorizeUrl(redirectUri: string): Promise<string> {
-    const config = await getConfig();
-    if (!config?.onedrive?.clientId) {
-      throw new Error("OneDrive app credentials not configured");
-    }
+    const { clientId } = getCredentials();
     const params = new URLSearchParams({
-      client_id: config.onedrive.clientId,
+      client_id: clientId,
       redirect_uri: redirectUri,
       response_type: "code",
       scope: "files.read offline_access",
@@ -28,10 +32,7 @@ class OneDriveProvider implements CloudProvider {
   }
 
   async exchangeCode(code: string, redirectUri: string): Promise<TokenSet> {
-    const config = await getConfig();
-    if (!config?.onedrive?.clientId || !config?.onedrive?.clientSecret) {
-      throw new Error("OneDrive app credentials not configured");
-    }
+    const { clientId, clientSecret } = getCredentials();
 
     const res = await fetch(`${AUTH_BASE}/token`, {
       method: "POST",
@@ -39,8 +40,8 @@ class OneDriveProvider implements CloudProvider {
       body: new URLSearchParams({
         grant_type: "authorization_code",
         code,
-        client_id: config.onedrive.clientId,
-        client_secret: config.onedrive.clientSecret,
+        client_id: clientId,
+        client_secret: clientSecret,
         redirect_uri: redirectUri,
       }),
     });
@@ -62,7 +63,6 @@ class OneDriveProvider implements CloudProvider {
     const token = await this.getAccessToken();
     const files: CloudFile[] = [];
 
-    // Graph API path format: /me/drive/root:/path:/children
     const encodedPath = folderPath ? `/root:${folderPath}:` : "/root";
     let url: string | null =
       `${GRAPH_BASE}/me/drive${encodedPath}/children?$select=name,size,lastModifiedDateTime,id,file,folder`;
@@ -80,11 +80,10 @@ class OneDriveProvider implements CloudProvider {
       const data = await res.json();
 
       for (const item of data.value) {
-        // Only include files (not folders) that are media
         if (item.file && isMediaFile(item.name)) {
           files.push({
             name: item.name,
-            path: item.id, // OneDrive uses item ID for createLink
+            path: item.id,
             id: item.id,
             size: item.size,
             modified: item.lastModifiedDateTime,
@@ -101,7 +100,6 @@ class OneDriveProvider implements CloudProvider {
   async getDownloadLink(itemId: string): Promise<string> {
     const token = await this.getAccessToken();
 
-    // Try to create a sharing link
     const res = await fetch(
       `${GRAPH_BASE}/me/drive/items/${itemId}/createLink`,
       {
@@ -128,7 +126,6 @@ class OneDriveProvider implements CloudProvider {
       throw new Error("OneDrive createLink returned no webUrl");
     }
 
-    // Convert sharing URL to direct download URL
     return toDirectDownload(webUrl);
   }
 
@@ -157,12 +154,13 @@ class OneDriveProvider implements CloudProvider {
   }
 
   private async getAccessToken(): Promise<string> {
+    const { clientId, clientSecret } = getCredentials();
     const config = await getConfig();
+
     if (!config?.onedrive?.refreshToken) {
       throw new Error("OneDrive not connected");
     }
 
-    // Check if current token is still valid
     if (
       config.onedrive.accessToken &&
       config.onedrive.accessTokenExpiry &&
@@ -177,8 +175,8 @@ class OneDriveProvider implements CloudProvider {
       body: new URLSearchParams({
         grant_type: "refresh_token",
         refresh_token: config.onedrive.refreshToken,
-        client_id: config.onedrive.clientId,
-        client_secret: config.onedrive.clientSecret,
+        client_id: clientId,
+        client_secret: clientSecret,
       }),
     });
 
@@ -188,6 +186,7 @@ class OneDriveProvider implements CloudProvider {
     }
 
     const data = await res.json();
+    if (!config.onedrive) config.onedrive = {};
     config.onedrive.accessToken = data.access_token;
     config.onedrive.accessTokenExpiry = new Date(
       Date.now() + data.expires_in * 1000
@@ -202,14 +201,9 @@ class OneDriveProvider implements CloudProvider {
 }
 
 function toDirectDownload(shareUrl: string): string {
-  // Convert OneDrive sharing URL to direct download
-  // https://1drv.ms/... → encode to base64 and use download API
-  // The standard approach: append ?download=1 or use the /download endpoint
-  // For sharing links, the most reliable method is the base64 encoding trick
   const base64 = Buffer.from(shareUrl, "utf-8").toString("base64");
   const encoded = "u!" + base64.replace(/=+$/, "").replace(/\//g, "_").replace(/\+/g, "-");
   return `${GRAPH_BASE}/shares/${encoded}/driveItem/content`;
 }
 
-// Register on import
 registerProvider("onedrive", async () => new OneDriveProvider());

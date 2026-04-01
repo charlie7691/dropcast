@@ -27,13 +27,16 @@ onedrive.get("/callback", async (c) => {
     const tokens = await provider.exchangeCode(code, callbackUrl);
 
     const config = await getConfig();
-    if (!config?.onedrive) return c.json({ error: "OneDrive not configured" }, 500);
+    if (!config) return c.json({ error: "App not configured" }, 500);
 
-    config.onedrive.refreshToken = tokens.refreshToken;
-    config.onedrive.accessToken = tokens.accessToken;
-    config.onedrive.accessTokenExpiry = new Date(
-      Date.now() + tokens.expiresIn * 1000
-    ).toISOString();
+    config.onedrive = {
+      ...config.onedrive,
+      refreshToken: tokens.refreshToken,
+      accessToken: tokens.accessToken,
+      accessTokenExpiry: new Date(
+        Date.now() + tokens.expiresIn * 1000
+      ).toISOString(),
+    };
     await saveConfig(config);
 
     return c.redirect("/?onedrive=connected");
@@ -46,16 +49,14 @@ onedrive.get("/status", jwtAuth, async (c) => {
   const config = await getConfig();
   return c.json({
     connected: !!config?.onedrive?.refreshToken,
-    hasCredentials: !!config?.onedrive?.clientId,
+    hasCredentials: !!(process.env.ONEDRIVE_CLIENT_ID && process.env.ONEDRIVE_CLIENT_SECRET),
   });
 });
 
 onedrive.post("/disconnect", jwtAuth, async (c) => {
   const config = await getConfig();
-  if (config?.onedrive) {
-    delete config.onedrive.refreshToken;
-    delete config.onedrive.accessToken;
-    delete config.onedrive.accessTokenExpiry;
+  if (config) {
+    delete config.onedrive;
     await saveConfig(config);
   }
   return c.json({ disconnected: true });

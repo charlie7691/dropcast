@@ -61,6 +61,10 @@ export class DropcastStack extends cdk.Stack {
       environment: {
         DATA_BUCKET: dataBucket.bucketName,
         NODE_OPTIONS: "--enable-source-maps",
+        DROPBOX_APP_KEY: process.env.DROPBOX_APP_KEY || "",
+        DROPBOX_APP_SECRET: process.env.DROPBOX_APP_SECRET || "",
+        ONEDRIVE_CLIENT_ID: process.env.ONEDRIVE_CLIENT_ID || "",
+        ONEDRIVE_CLIENT_SECRET: process.env.ONEDRIVE_CLIENT_SECRET || "",
       },
       bundling: {
         format: nodejs.OutputFormat.ESM,

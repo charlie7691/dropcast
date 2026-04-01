@@ -7,15 +7,11 @@ export interface AppConfig {
   passwordHash: string;
   jwtSecret: string;
   dropbox?: {
-    appKey: string;
-    appSecret: string;
     refreshToken?: string;
     accessToken?: string;
     accessTokenExpiry?: string;
   };
   onedrive?: {
-    clientId: string;
-    clientSecret: string;
     refreshToken?: string;
     accessToken?: string;
     accessTokenExpiry?: string;

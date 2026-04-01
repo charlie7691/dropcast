@@ -10,15 +10,53 @@ import {
 const AUTH_BASE = "https://www.dropbox.com";
 const API_BASE = "https://api.dropboxapi.com/2";
 
+function getCredentials() {
+  const appKey = process.env.DROPBOX_APP_KEY;
+  const appSecret = process.env.DROPBOX_APP_SECRET;
+  if (!appKey || !appSecret) throw new Error("Dropbox credentials not configured (set DROPBOX_APP_KEY and DROPBOX_APP_SECRET)");
+  return { appKey, appSecret };
+}
+
 class DropboxProvider implements CloudProvider {
   id = "dropbox" as const;
 
   async getAuthorizeUrl(redirectUri: string): Promise<string> {
-    return getAuthorizeUrl(redirectUri);
+    const { appKey } = getCredentials();
+    const params = new URLSearchParams({
+      client_id: appKey,
+      redirect_uri: redirectUri,
+      response_type: "code",
+      token_access_type: "offline",
+    });
+    return `${AUTH_BASE}/oauth2/authorize?${params}`;
   }
 
   async exchangeCode(code: string, redirectUri: string): Promise<TokenSet> {
-    return exchangeCodeForTokens(code, redirectUri);
+    const { appKey, appSecret } = getCredentials();
+
+    const res = await fetch(`${API_BASE}/../oauth2/token`, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        grant_type: "authorization_code",
+        code,
+        client_id: appKey,
+        client_secret: appSecret,
+        redirect_uri: redirectUri,
+      }),
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`Token exchange failed: ${res.status} ${text}`);
+    }
+
+    const data = await res.json();
+    return {
+      accessToken: data.access_token,
+      refreshToken: data.refresh_token,
+      expiresIn: data.expires_in,
+    };
   }
 
   async listFiles(folderPath: string): Promise<CloudFile[]> {
@@ -34,64 +72,18 @@ class DropboxProvider implements CloudProvider {
   }
 }
 
-// Register on import
 registerProvider("dropbox", async () => new DropboxProvider());
 
 // --- Internal implementation ---
 
-async function getAuthorizeUrl(redirectUri: string): Promise<string> {
-  const config = await getConfig();
-  if (!config?.dropbox?.appKey) throw new Error("Dropbox app credentials not configured");
-  const params = new URLSearchParams({
-    client_id: config.dropbox.appKey,
-    redirect_uri: redirectUri,
-    response_type: "code",
-    token_access_type: "offline",
-  });
-  return `${AUTH_BASE}/oauth2/authorize?${params}`;
-}
-
-async function exchangeCodeForTokens(
-  code: string,
-  redirectUri: string
-): Promise<TokenSet> {
-  const config = await getConfig();
-  if (!config?.dropbox?.appKey || !config?.dropbox?.appSecret) {
-    throw new Error("Dropbox app credentials not configured");
-  }
-
-  const res = await fetch(`${API_BASE}/../oauth2/token`, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      grant_type: "authorization_code",
-      code,
-      client_id: config.dropbox.appKey,
-      client_secret: config.dropbox.appSecret,
-      redirect_uri: redirectUri,
-    }),
-  });
-
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Token exchange failed: ${res.status} ${text}`);
-  }
-
-  const data = await res.json();
-  return {
-    accessToken: data.access_token,
-    refreshToken: data.refresh_token,
-    expiresIn: data.expires_in,
-  };
-}
-
 async function getAccessToken(): Promise<string> {
+  const { appKey, appSecret } = getCredentials();
   const config = await getConfig();
+
   if (!config?.dropbox?.refreshToken) {
     throw new Error("Dropbox not connected");
   }
 
-  // Check if current token is still valid
   if (
     config.dropbox.accessToken &&
     config.dropbox.accessTokenExpiry &&
@@ -106,8 +98,8 @@ async function getAccessToken(): Promise<string> {
     body: new URLSearchParams({
       grant_type: "refresh_token",
       refresh_token: config.dropbox.refreshToken,
-      client_id: config.dropbox.appKey,
-      client_secret: config.dropbox.appSecret,
+      client_id: appKey,
+      client_secret: appSecret,
     }),
   });
 
@@ -119,6 +111,7 @@ async function getAccessToken(): Promise<string> {
   const data = await res.json();
   const expiry = new Date(Date.now() + data.expires_in * 1000).toISOString();
 
+  if (!config.dropbox) config.dropbox = {};
   config.dropbox.accessToken = data.access_token;
   config.dropbox.accessTokenExpiry = expiry;
   await saveConfig(config);
