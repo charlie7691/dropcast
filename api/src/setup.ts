@@ -41,24 +41,28 @@ async function main() {
     return;
   }
 
-  const dropboxAppKey = await prompt(
-    "Dropbox App Key (leave empty to configure later): "
-  );
-  const dropboxAppSecret = dropboxAppKey
-    ? await prompt("Dropbox App Secret: ")
-    : "";
-
   const config: AppConfig = {
     username,
     passwordHash: await hashPassword(password),
     jwtSecret: randomBytes(32).toString("hex"),
   };
 
-  if (dropboxAppKey && dropboxAppSecret) {
-    config.dropbox = {
-      appKey: dropboxAppKey,
-      appSecret: dropboxAppSecret,
-    };
+  // Dropbox credentials
+  const dropboxAppKey = await prompt(
+    "Dropbox App Key (leave empty to skip): "
+  );
+  if (dropboxAppKey) {
+    const dropboxAppSecret = await prompt("Dropbox App Secret: ");
+    config.dropbox = { appKey: dropboxAppKey, appSecret: dropboxAppSecret };
+  }
+
+  // OneDrive credentials
+  const onedriveClientId = await prompt(
+    "OneDrive Client ID (leave empty to skip): "
+  );
+  if (onedriveClientId) {
+    const onedriveClientSecret = await prompt("OneDrive Client Secret: ");
+    config.onedrive = { clientId: onedriveClientId, clientSecret: onedriveClientSecret };
   }
 
   await storage.writeJson("config.json", config);

@@ -13,6 +13,13 @@ export interface AppConfig {
     accessToken?: string;
     accessTokenExpiry?: string;
   };
+  onedrive?: {
+    clientId: string;
+    clientSecret: string;
+    refreshToken?: string;
+    accessToken?: string;
+    accessTokenExpiry?: string;
+  };
 }
 
 export async function getConfig(): Promise<AppConfig | null> {
