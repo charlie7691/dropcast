@@ -55,7 +55,7 @@ export class PostcastifyStack extends cdk.Stack {
     const fn = new nodejs.NodejsFunction(this, "ApiFunction", {
       entry: resolve(repoRoot, "api", "src", "lambda.ts"),
       handler: "handler",
-      runtime: lambda.Runtime.NODEJS_20_X,
+      runtime: lambda.Runtime.NODEJS_22_X,
       memorySize: 256,
       timeout: cdk.Duration.seconds(30),
       environment: {
@@ -69,7 +69,7 @@ export class PostcastifyStack extends cdk.Stack {
       },
       bundling: {
         format: nodejs.OutputFormat.ESM,
-        target: "node20",
+        target: "node22",
         mainFields: ["module", "main"],
         esbuildArgs: {
           "--conditions": "module",
